@@ -1,6 +1,12 @@
+# Colaborador: Elivandro oliveira grippa
+
+# Pacotes utilizados
 using JuMP, CPLEX, Printf, MathOptInterface
 
+# Constantes utilizadas
+const TOL = 1e-6
 
+# Estrutura auxiliar
 struct PDLU_Info
 	solution_summary
 	objective_value
@@ -9,10 +15,10 @@ struct PDLU_Info
 	s_t
 	separation
 	separationtime
-	NumberOfUseCuts # Obs.: Não consegui obter de maneira automática
+	NumberOfUseCuts # Obs.: Não consegui obter de maneira automática (verificar documentação)
 end
 
-
+# Leitura de instâncias
 function readPDLU(path::String)
 	# Abrindo o arquivo da intância
 	f = open(path)
@@ -31,37 +37,35 @@ function readPDLU(path::String)
 	return T, c, h, K, d
 end
 
-begin
-	const TOL = 1e-6
+
 	
-	function separate(T::Int64, sumd::Array{Float64, 2}, z_val, q_val, z, q)
-		S = zeros(Bool, T)
-		for l in 1:T
-			fill!(S, false)
-			lhsvalue = 0.  #q(L\S) + sum{d[j:l]*z[j] for j in S}
-			empty = true
-			for j in 1:l
-				if q_val[j] > sumd[j,l]*z_val[j] + TOL
-					S[j] = true
-					empty = false
-					lhsvalue += sumd[j,l]*z_val[j]
-				else
-					lhsvalue += q_val[j]
-				end
-			end
-			if empty
-				continue
-			end
-			if lhsvalue < sumd[1,l] - TOL
-				lhs = sum(q[1:l])
-				for j = (1:T)[S]
-					lhs += sumd[j,l]*z[j] - q[j]
-				end
-				return lhs - sumd[1,l]
+function separate(T::Int64, sumd::Array{Float64, 2}, z_val, q_val, z, q)
+	S = zeros(Bool, T)
+	for l in 1:T
+		fill!(S, false)
+		lhsvalue = 0.  #q(L\S) + sum{d[j:l]*z[j] for j in S}
+		empty = true
+		for j in 1:l
+			if q_val[j] > sumd[j,l]*z_val[j] + TOL
+				S[j] = true
+				empty = false
+				lhsvalue += sumd[j,l]*z_val[j]
+			else
+				lhsvalue += q_val[j]
 			end
 		end
-		return nothing
+		if empty
+			continue
+		end
+		if lhsvalue < sumd[1,l] - TOL
+			lhs = sum(q[1:l])
+			for j = (1:T)[S]
+				lhs += sumd[j,l]*z[j] - q[j]
+			end
+			return lhs - sumd[1,l]
+		end
 	end
+	return nothing
 end
 
 function solvePDLU(path::String; solver = CPLEX.Optimizer, valid::Bool = true)
@@ -75,6 +79,7 @@ function solvePDLU(path::String; solver = CPLEX.Optimizer, valid::Bool = true)
     # Inicialização do modelo, chamaremos de modelo m
 	m = Model(solver)
 	
+	# Remove as saídas automáticas do solver
 	# set_silent(m)
 	
 	# Parâmetros carregados para o CPLEX: 
@@ -99,7 +104,7 @@ function solvePDLU(path::String; solver = CPLEX.Optimizer, valid::Bool = true)
 	   sumd[j,l] = sum(d[j:l])
 	end
 
-	# Tempo de separação, número de separação e chamadas
+	# Tempo de separação, número de separações e chamadas
 	separationtime = 0.
 	separations = 0
 	called = 0
