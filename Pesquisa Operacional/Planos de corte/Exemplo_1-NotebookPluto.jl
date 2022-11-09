@@ -193,7 +193,7 @@ md"""
 
 # ╔═╡ 3c523c4f-3b52-46b5-94a2-2b261bd87c02
 md"""
-A estrutura abaixo facilita a organização dos dados de retorno da função principal (contrução do modelo + resolução).
+A estrutura abaixo facilita a organização dos dados de retorno da função principal (construção do modelo + resolução).
 """
 
 # ╔═╡ 5f3f90b2-89b8-4f72-93a5-01b0c42ce146
